@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "hint login",
+    "slug": "hint-login",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.misscoding.facebooklogin",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.misscoding.facebooklogin",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e1b7a1a6-ea82-4986-9329-c33e589eedf7"
+      }
+    },
+    "plugins": [
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "1175821280506368",
+          "clientToken": "130b248e3c34de3cf597811e9f4bfdb5",
+          "displayName": "hintLogin",
+          "scheme": "fb1175821280506368",
+          "advertiserIDCollectionEnabled": false,
+          "autoLogAppEventsEnabled": false,
+          "isAutoInitEnabled": true,
+          "iosUserTrackingPermission": "This identifier will be used to deliver personalized ads to you."
+        }
+      ],
+      "expo-tracking-transparency"
+    ]
+  }
+}
