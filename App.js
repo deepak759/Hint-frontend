@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
-import { Button, StyleSheet, View } from "react-native";
-import { useEffect } from "react";
+import { Button, StyleSheet, View, Text, Image } from "react-native";
+import { useEffect, useState } from "react";
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import {
   AccessToken,
@@ -8,10 +8,11 @@ import {
   GraphRequestManager,
   LoginButton,
   Settings,
-  ShareDialog,
 } from "react-native-fbsdk-next";
 
 export default function App() {
+  const [userData, setUserData] = useState(null);
+
   useEffect(() => {
     const requestTracking = async () => {
       const { status } = await requestTrackingPermissionsAsync();
@@ -27,46 +28,53 @@ export default function App() {
   }, []);
 
   const getData = () => {
-    const infoRequest = new GraphRequest("/me", null, (error, result) => {
-      console.log(error || result);
-    });
-    new GraphRequestManager().addRequest(infoRequest).start();
-  };
-
-  const shareLink = async () => {
-    const content = {
-      contentType: "link",
-      contentUrl: "https://www.youtube.com/channel/UCwJWXcI12lhcorzG7Vrf2zw",
-    };
-
-    const canShow = await ShareDialog.canShow(content);
-
-    if (canShow) {
-      try {
-        const { isCancelled, postId } = await ShareDialog.show(content);
-
-        if (isCancelled) {
-          console.log("Share cancelled");
-        } else {
-          console.log("Share success with postId: " + postId);
+    const infoRequest = new GraphRequest(
+      "/me",
+      {
+        parameters: {
+          fields: {
+            string: "id,name,email,picture.type(large),birthday,hometown,location,gender,age_range,link,friends,likes",
+          },
+        },
+      },
+      (error, result) => {
+        console.log(error || result);
+        if (!error) {
+          setUserData(result);
         }
-      } catch (e) {
-        console.log("Share fail with error: " + e);
       }
-    }
+    );
+    new GraphRequestManager().addRequest(infoRequest).start();
   };
 
   return (
     <View style={styles.container}>
       <LoginButton
-        onLogoutFinished={() => console.log("Logged out")}
+        onLogoutFinished={() => {
+          console.log("Logged out");
+          setUserData(null);
+        }}
         onLoginFinished={(error, data) => {
           console.log(error || data);
-          AccessToken.getCurrentAccessToken().then((data) => console.log(data));
+          AccessToken.getCurrentAccessToken().then((data) =>
+            console.log(data)
+          );
         }}
       />
       <Button title="Get Data" onPress={getData} />
-      <Button title="Share Link" onPress={shareLink} />
+      {userData && (
+        <View style={styles.userInfo}>
+          <Text>Name: {userData.name}</Text>
+          <Text>Email: {userData.email}</Text>
+          <Text>Birthday: {userData.birthday}</Text>
+          <Text>Hometown: {userData.hometown?.name}</Text>
+          <Text>Location: {userData.location?.name}</Text>
+          <Text>Gender: {userData.gender}</Text>
+          <Text>Age Range: {userData.age_range?.min} - {userData.age_range?.max}</Text>
+          <Text>Profile Link: {userData.link}</Text>
+          <Image source={{ uri: userData.picture.data.url }} style={styles.image} />
+        </View>
+      )}
       <StatusBar style="auto" />
     </View>
   );
@@ -79,63 +87,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  userInfo: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  image: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginTop: 10,
+  },
 });
-
-/*
-  npx create-expo-app expo-facebook-login-tutorial
-  For testing we need a standalone app which is why we install expo-dev-client
-
-  npx expo install expo-dev-client
-  
-  If you don't have eas installed then install using the following command:
-  npm install -g eas-cli
-
-  eas login
-  eas build:configure
-
-  Update app.json with package and bundle identifiers.
-  
-  Setup Android build credentials using the following command. 
-  This will allow you to configure your Facebook app. 
-  You'll need to do this again for prod when you are ready to release.
-
-  eas credentials
-
-  Go to https://developers.facebook.com/apps/creation/
-  Authenticate with FB option
-  Answer the on screen questions
-  Click Customize Facebook Login Button
-  
-  Go to quick start
-  Select Android, you can skip most of the steps as we are not building natively
-  Convert SHA1 from eas credentials to Base64: https://base64.guru/converter/encode/hex
-  Copy value into Add Your Development and Release Key Hashes
-  
-  Go back to quick start
-  Select iOS, you can skip most of the steps
-  Enter bundle identifier and save
-
-  Go to App Settings > Basic Settings
-  Verify your iOS and Android App settings have saved
-
-  Install react-native-fbsdk-next
-  npx expo install react-native-fbsdk-next
-
-  Install expo-tracking-transparency
-  npx expo install expo-tracking-transparency
-
-  To the app.json, add the necessary config to the plugins section
-  The appID and clientToken can come from the Facebook Basic Setting's page
-
-  Build for iOS or Android:
-  eas build -p ios --profile development
-  OR
-  eas build -p android --profile development
-
-  After building install on your device:
-  For iOS (simulator): https://docs.expo.dev/build-reference/simulators/
-  For Android: https://docs.expo.dev/build-reference/apk/
-
-  Run on installed app:
-  expo start --dev-client
-*/
