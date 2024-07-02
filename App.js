@@ -1,100 +1,103 @@
 import { StatusBar } from "expo-status-bar";
-import { Button, StyleSheet, View, Text, Image } from "react-native";
-import { useEffect, useState } from "react";
-import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
-import {
-  AccessToken,
-  GraphRequest,
-  GraphRequestManager,
-  LoginButton,
-  Settings,
-} from "react-native-fbsdk-next";
+import FacebookLogin from "./components/Auth/FacebookLogin";
+import { Provider, useDispatch, useSelector } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import LoginScreen from "./screens/LoginScreen";
+import SignupScreen from "./screens/SignupScreen";
+import WelcomeScreen from "./screens/WelcomeScreen";
+import { Colors } from "./constants/styles";
+import { store, persistor } from "./store/Redux/store";
+import { logout } from "./store/Redux/Favourites";
+import { StyleSheet, Text } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import IconButton from './components/ui/IconButton'
 
-export default function App() {
-  const [userData, setUserData] = useState(null);
+const Stack = createNativeStackNavigator();
 
-  useEffect(() => {
-    const requestTracking = async () => {
-      const { status } = await requestTrackingPermissionsAsync();
+function AuthStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: Colors.primary500 },
+        headerTintColor: "white",
+        contentStyle: { backgroundColor: Colors.primary100 },
+      }}
+    >
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Signup" component={SignupScreen} />
+    </Stack.Navigator>
+  );
+}
 
-      Settings.initializeSDK();
+function AuthenticatedStack() {
+  const dispatch = useDispatch();
+  function logoutHnadler() {
+    dispatch(logout());
+  }
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: Colors.primary500 },
+        headerTintColor: "white",
 
-      if (status === "granted") {
-        await Settings.setAdvertiserTrackingEnabled(true);
-      }
-    };
-
-    requestTracking();
-  }, []);
-
-  const getData = () => {
-    const infoRequest = new GraphRequest(
-      "/me",
-      {
-        parameters: {
-          fields: {
-            string: "id,name,email,picture.type(large),birthday,hometown,location,gender,age_range,link,friends,likes",
+        contentStyle: { backgroundColor: Colors.primary100 },
+      }}
+    >
+      <Stack.Screen
+        options={{
+          headerRight: ({ tintColor }) => {
+            return (
+              <IconButton
+                color={tintColor}
+                onPress={logoutHnadler}
+                icon={"log-out-outline"}
+                size={24}
+              />
+              
+            );
           },
-        },
-      },
-      (error, result) => {
-        console.log(error || result);
-        if (!error) {
-          setUserData(result);
-        }
-      }
-    );
-    new GraphRequestManager().addRequest(infoRequest).start();
-  };
+        }}
+        name="Welcome"
+        component={WelcomeScreen}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function Navigation() {
+  const isLogin = useSelector(
+    (state) => state.authenticationInfo.isAuthenticated
+  );
 
   return (
-    <View style={styles.container}>
-      <LoginButton
-        onLogoutFinished={() => {
-          console.log("Logged out");
-          setUserData(null);
-        }}
-        onLoginFinished={(error, data) => {
-          console.log(error || data);
-          AccessToken.getCurrentAccessToken().then((data) =>
-            console.log(data)
-          );
-        }}
-      />
-      <Button title="Get Data" onPress={getData} />
-      {userData && (
-        <View style={styles.userInfo}>
-          <Text>Name: {userData.name}</Text>
-          <Text>Email: {userData.email}</Text>
-          <Text>Birthday: {userData.birthday}</Text>
-          <Text>Hometown: {userData.hometown?.name}</Text>
-          <Text>Location: {userData.location?.name}</Text>
-          <Text>Gender: {userData.gender}</Text>
-          <Text>Age Range: {userData.age_range?.min} - {userData.age_range?.max}</Text>
-          <Text>Profile Link: {userData.link}</Text>
-          <Image source={{ uri: userData.picture.data.url }} style={styles.image} />
-        </View>
-      )}
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        {!isLogin ? <AuthStack /> : <AuthenticatedStack />}
+      </NavigationContainer>
+    </SafeAreaProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <>
+      <Provider store={store}>
+        <StatusBar style="light" />
+        <PersistGate loading={null} persistor={persistor}>
+          <Navigation />
+          {/* <FacebookLogin/> */}
+          {/* <Text>fdfdfd</Text> */}
+        </PersistGate>
+      </Provider>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  rootScreen: {
     flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  userInfo: {
-    alignItems: "center",
-    marginTop: 20,
-  },
-  image: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginTop: 10,
+    backgroundColor: "#212121",
   },
 });
